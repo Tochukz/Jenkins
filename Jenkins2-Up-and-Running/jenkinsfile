@@ -1,0 +1,52 @@
+node
+{
+	dir("${BUILD_PATH}")
+	{
+		stage('Cleanup')
+		{
+			if(fileExists("/Node_Modules"))
+			{
+				if ( checkFolderForDiffs('/package.json') )
+				{
+					cmd_exec('echo "Cleaning Node_Modules..."')
+					cmd_exec('rmdir ".\\Node_Modules"')
+					cmd_exec('npm install')
+				}
+			}
+			else
+			{
+				cmd_exec('npm install')
+			}
+		}
+		stage('Build')
+		{
+			cmd_exec('echo "Running Asset Build Bat..."')
+			cmd_exec("npm run build ${BUILD_PARAM}")
+		}
+	}
+
+	stage('Test')
+	{
+		cmd_exec('echo "Test starting..."')
+	}
+
+	stage('Deploy')
+	{
+		cmd_exec('echo "Deploy starting..."')
+		cmd_exec("xcopy ${BUILD_PATH}\\build  C:\\www\\firefly /O /X /E /H /K /D /Y")
+	}
+}
+
+def cmd_exec(command)
+{
+    bat(returnStdout: true, script: "${command}").trim()
+}
+def checkFolderForDiffs(path) {
+    try
+	{
+        sh "git diff --quiet --exit-code HEAD~1..HEAD ${path}"
+        return false
+    } catch (err) {
+        return true
+    }
+}
